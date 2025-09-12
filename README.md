@@ -59,3 +59,4 @@ You will see the Swayatt logo displayed in your browser.
 - **Port**: 3000
 - **Endpoint**: GET `/` - serves the logo image
 - **File served**: `logoswayatt.png`
+# Devops
