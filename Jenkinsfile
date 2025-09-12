@@ -4,13 +4,18 @@ pipeline {
   environment {
     AWS_ACCOUNT_ID = '824909831309'
     AWS_REGION     = 'ap-south-1'
-    ECR_REPO       = 'devops-task-app'
+    ECR_REPO       = 'devops-sample-app'
     IMAGE_TAG      = "${env.BUILD_NUMBER}"
     ECR_URI        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
     // NodeJS tool name must match Jenkins Global Tool config
     NODEJS_TOOL    = 'nodejs-lts'
     // Jenkins credentials id for AWS
     AWS_CREDS_ID   = 'aws-creds'
+    // ECS deployment targets (discovered)
+    ECS_CLUSTER    = 'arn:aws:ecs:ap-south-1:824909831309:cluster/devops-sample-cluster'
+    ECS_SERVICE    = 'arn:aws:ecs:ap-south-1:824909831309:service/devops-sample-cluster/devops-sample-task-service-4s8y60r6'
+    TASK_FAMILY    = 'devops-sample-task'
+    CONTAINER_NAME = 'devops-sample-container'
   }
 
   options {
@@ -65,14 +70,19 @@ pipeline {
     }
 
     stage('Deploy to ECS') {
-      environment {
-        ECS_CLUSTER = 'devops-cluster'
-        ECS_SERVICE = 'devops-service'
-        TASK_FAMILY = 'devops-task'
-        CONTAINER_NAME = 'app'
-      }
       steps {
         script {
+          // Ensure jq is available
+          sh '''
+            set -e
+            if ! command -v jq >/dev/null 2>&1; then
+              echo "jq not found; attempting to install..."
+              if command -v apt-get >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y jq; 
+              elif command -v yum >/dev/null 2>&1; then sudo yum install -y jq; 
+              elif command -v apk >/dev/null 2>&1; then sudo apk add --no-cache jq; 
+              else echo "Package manager not found; please install jq manually on the Jenkins agent"; exit 1; fi
+            fi
+          '''
           // Fetch current task definition JSON
           sh '''
             set -euo pipefail
@@ -85,7 +95,9 @@ pipeline {
             set -euo pipefail
             NEW_IMAGE="${ECR_URI}:${IMAGE_TAG}"
             cat taskdef.json | \
-              jq '.containerDefinitions[0].image = env.NEW_IMAGE | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+              jq --arg NAME "${CONTAINER_NAME}" --arg IMG "$NEW_IMAGE" \
+                 '.containerDefinitions |= (map(if .name == $NAME then .image = $IMG else . end)) \
+                  | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
               > taskdef-updated.json
 
             aws ecs register-task-definition --region ${AWS_REGION} \
@@ -111,7 +123,7 @@ pipeline {
       script {
         sh '''
           set -e
-          aws ecs describe-services --cluster devops-cluster --services devops-service --region ${AWS_REGION} \
+          aws ecs describe-services --cluster ${ECS_CLUSTER} --services ${ECS_SERVICE} --region ${AWS_REGION} \
             --query 'services[0].{Service:serviceName,Status:status,Running:runningCount,Desired:desiredCount,TaskDef:taskDefinition}'
         '''
       }
