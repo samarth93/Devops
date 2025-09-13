@@ -7,8 +7,8 @@ pipeline {
     ECR_REPO       = 'devops-sample-app'
     IMAGE_TAG      = "${env.BUILD_NUMBER}"
     ECR_URI        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
-    // NodeJS tool name must match Jenkins Global Tool config
-    NODEJS_TOOL    = 'nodejs-lts'
+    // NodeJS tool (using system Node.js instead)
+    // NODEJS_TOOL    = 'nodejs-lts'
     // Jenkins credentials id for AWS
     AWS_CREDS_ID   = 'aws-creds'
     // ECS deployment targets (discovered)
@@ -31,9 +31,15 @@ pipeline {
     }
 
     stage('Setup Node') {
-      tools { nodejs "${NODEJS_TOOL}" }
       steps {
-        sh 'node -v && npm -v'
+        sh '''
+          echo "Using system Node.js..."
+          node -v && npm -v || {
+            echo "Node.js not found, installing via snap..."
+            sudo snap install node --classic
+            node -v && npm -v
+          }
+        '''
       }
     }
 
