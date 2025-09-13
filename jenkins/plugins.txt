@@ -1,0 +1,9 @@
+github
+workflow-aggregator
+blueocean
+docker-workflow
+amazon-ecr
+aws-credentials
+github-branch-source
+credentials-binding
+pipeline-utility-steps
