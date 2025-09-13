@@ -336,7 +336,7 @@ This project successfully demonstrates a complete DevOps transformation from man
 
 The pipeline serves as a foundation for enterprise-grade applications and can be extended with additional features like multi-environment support, advanced monitoring, and sophisticated deployment strategies.
 
-**Final Status**: ✅ **Production Ready** with 2 consecutive successful deployments and live application serving traffic at http://43.204.130.22:3000
+**Final Status**: ✅ **Production Ready** with 2 consecutive successful deployments and live application serving traffic at http://YOUR_ECS_PUBLIC_IP:3000
 
 ---
 

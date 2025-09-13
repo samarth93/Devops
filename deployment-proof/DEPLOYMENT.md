@@ -2,7 +2,7 @@
 
 ## Live Application
 
-**Public URL**: http://43.204.130.22:3000
+**Public URL**: http://YOUR_ECS_PUBLIC_IP:3000
 
 ### Application Status
 - **Status**: ✅ LIVE and OPERATIONAL
@@ -17,10 +17,10 @@
 - **Service**: `devops-sample-task-service-4s8y60r6`
 - **Status**: ACTIVE
 - **Running Tasks**: 1/1 (100% healthy)
-- **Task Definition**: `arn:aws:ecs:ap-south-1:824909831309:task-definition/devops-sample-task:3`
+- **Task Definition**: `arn:aws:ecs:YOUR_REGION:YOUR_ACCOUNT_ID:task-definition/YOUR_TASK_FAMILY:REVISION`
 
 **ECR Repository:**
-- **URI**: `824909831309.dkr.ecr.ap-south-1.amazonaws.com/devops-sample-app`
+- **URI**: `YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/YOUR_ECR_REPO`
 - **Latest Image**: `devops-sample-app:7`
 - **Region**: ap-south-1
 
@@ -51,7 +51,7 @@
 
 ```bash
 # Check application response
-curl -I http://43.204.130.22:3000
+curl -I http://YOUR_ECS_PUBLIC_IP:3000
 
 # Verify ECS service status
 aws ecs describe-services --cluster devops-sample-cluster --services devops-sample-task-service-4s8y60r6 --region ap-south-1

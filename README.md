@@ -41,7 +41,7 @@ A complete CI/CD pipeline implementation using Jenkins, Docker, AWS ECR, and ECS
 
 ## 🌐 Live Application
 
-**Public URL**: [http://43.204.130.22:3000](http://43.204.130.22:3000)
+**Public URL**: [http://YOUR_ECS_PUBLIC_IP:3000](http://YOUR_ECS_PUBLIC_IP:3000)
 
 ## 📋 Project Overview
 
@@ -191,7 +191,7 @@ The Jenkins pipeline (`Jenkinsfile`) includes 8 stages:
 
 ## 📊 Deployment Proof
 
-✅ **Live Application**: [http://43.204.130.22:3000](http://43.204.130.22:3000)
+✅ **Live Application**: [http://YOUR_ECS_PUBLIC_IP:3000](http://YOUR_ECS_PUBLIC_IP:3000)
 
 **Recent Successful Deployments:**
 - Build #6: First successful end-to-end deployment
@@ -237,9 +237,9 @@ The application follows a modern DevOps architecture with automated CI/CD:
 
 ## 🔗 Quick Links
 
-- **Live Application**: http://43.204.130.22:3000
+- **Live Application**: http://YOUR_ECS_PUBLIC_IP:3000
 - **GitHub Repository**: https://github.com/samarth93/Devops
-- **Docker Image**: `824909831309.dkr.ecr.ap-south-1.amazonaws.com/devops-sample-app:latest`
+- **Docker Image**: `YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/YOUR_ECR_REPO:latest`
 
 ---
 

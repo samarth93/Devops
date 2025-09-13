@@ -1,21 +1,35 @@
+/*
+ * DevOps CI/CD Pipeline
+ * 
+ * This pipeline requires the following environment variables to be set in Jenkins:
+ * - AWS_ACCOUNT_ID: Your AWS account ID (12-digit number)
+ * - AWS_REGION: AWS region (e.g., us-east-1, ap-south-1)
+ * - ECR_REPO: ECR repository name
+ * - ECS_CLUSTER: Full ARN of ECS cluster
+ * - ECS_SERVICE: Full ARN of ECS service
+ * - TASK_FAMILY: ECS task definition family name
+ * - CONTAINER_NAME: Container name in task definition
+ * - AWS_CREDS_ID: Jenkins credential ID for AWS credentials (optional, uses system creds if not set)
+ */
+
 pipeline {
   agent any
 
   environment {
-    AWS_ACCOUNT_ID = '824909831309'
-    AWS_REGION     = 'ap-south-1'
-    ECR_REPO       = 'devops-sample-app'
+    AWS_ACCOUNT_ID = env.AWS_ACCOUNT_ID ?: 'YOUR_AWS_ACCOUNT_ID'
+    AWS_REGION     = env.AWS_REGION ?: 'YOUR_AWS_REGION'
+    ECR_REPO       = env.ECR_REPO ?: 'YOUR_ECR_REPOSITORY_NAME'
     IMAGE_TAG      = "${env.BUILD_NUMBER}"
     ECR_URI        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
     // NodeJS tool (using system Node.js instead)
     // NODEJS_TOOL    = 'nodejs-lts'
     // Jenkins credentials id for AWS
-    AWS_CREDS_ID   = 'aws-creds'
-    // ECS deployment targets (discovered)
-    ECS_CLUSTER    = 'arn:aws:ecs:ap-south-1:824909831309:cluster/devops-sample-cluster'
-    ECS_SERVICE    = 'arn:aws:ecs:ap-south-1:824909831309:service/devops-sample-cluster/devops-sample-task-service-4s8y60r6'
-    TASK_FAMILY    = 'devops-sample-task'
-    CONTAINER_NAME = 'devops-sample-container'
+    AWS_CREDS_ID   = env.AWS_CREDS_ID ?: 'aws-creds'
+    // ECS deployment targets - set these as environment variables
+    ECS_CLUSTER    = env.ECS_CLUSTER ?: 'arn:aws:ecs:YOUR_REGION:YOUR_ACCOUNT_ID:cluster/YOUR_CLUSTER_NAME'
+    ECS_SERVICE    = env.ECS_SERVICE ?: 'arn:aws:ecs:YOUR_REGION:YOUR_ACCOUNT_ID:service/YOUR_CLUSTER_NAME/YOUR_SERVICE_NAME'
+    TASK_FAMILY    = env.TASK_FAMILY ?: 'YOUR_TASK_FAMILY'
+    CONTAINER_NAME = env.CONTAINER_NAME ?: 'YOUR_CONTAINER_NAME'
   }
 
   options {
