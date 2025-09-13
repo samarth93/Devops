@@ -60,3 +60,4 @@ You will see the Swayatt logo displayed in your browser.
 - **Endpoint**: GET `/` - serves the logo image
 - **File served**: `logoswayatt.png`
 # Devops
+# Jenkins Pipeline Documentation - Sun Sep 14 12:10:56 AM IST 2025
