@@ -61,67 +61,67 @@ pipeline {
 
     stage('Login to ECR') {
       steps {
-        withCredentials([aws(credentialsId: AWS_CREDS_ID, region: AWS_REGION)]) {
-          sh "aws --version"
-          sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-        }
+        sh '''
+          echo "Using system AWS credentials..."
+          aws --version
+          aws sts get-caller-identity
+          aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+        '''
       }
     }
 
     stage('Push Image') {
       steps {
-        withCredentials([aws(credentialsId: AWS_CREDS_ID, region: AWS_REGION)]) {
-          sh "aws ecr describe-repositories --repository-names ${ECR_REPO} --region ${AWS_REGION} || aws ecr create-repository --repository-name ${ECR_REPO} --region ${AWS_REGION}"
-          sh "docker push ${ECR_URI}:${IMAGE_TAG}"
-        }
+        sh '''
+          aws ecr describe-repositories --repository-names ${ECR_REPO} --region ${AWS_REGION} || aws ecr create-repository --repository-name ${ECR_REPO} --region ${AWS_REGION}
+          docker push ${ECR_URI}:${IMAGE_TAG}
+        '''
       }
     }
 
     stage('Deploy to ECS') {
       steps {
-        withCredentials([aws(credentialsId: AWS_CREDS_ID, region: AWS_REGION)]) {
-          script {
-            // Ensure jq is available
-            sh '''
-              set -e
-              if ! command -v jq >/dev/null 2>&1; then
-                echo "jq not found; attempting to install..."
-                if command -v apt-get >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y jq; 
-                elif command -v yum >/dev/null 2>&1; then sudo yum install -y jq; 
-                elif command -v apk >/dev/null 2>&1; then sudo apk add --no-cache jq; 
-                else echo "Package manager not found; please install jq manually on the Jenkins agent"; exit 1; fi
-              fi
-            '''
-            // Fetch current task definition JSON
-            sh '''
-              set -euo pipefail
-              aws ecs describe-task-definition --task-definition ${TASK_FAMILY} --region ${AWS_REGION} \
-                --query 'taskDefinition' > taskdef.json
-            '''
+        script {
+          // Ensure jq is available
+          sh '''
+            set -e
+            if ! command -v jq >/dev/null 2>&1; then
+              echo "jq not found; attempting to install..."
+              if command -v apt-get >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y jq; 
+              elif command -v yum >/dev/null 2>&1; then sudo yum install -y jq; 
+              elif command -v apk >/dev/null 2>&1; then sudo apk add --no-cache jq; 
+              else echo "Package manager not found; please install jq manually on the Jenkins agent"; exit 1; fi
+            fi
+          '''
+          // Fetch current task definition JSON
+          sh '''
+            set -euo pipefail
+            aws ecs describe-task-definition --task-definition ${TASK_FAMILY} --region ${AWS_REGION} \
+              --query 'taskDefinition' > taskdef.json
+          '''
 
-            // Update image in container definitions and register new revision
-            sh '''
-              set -euo pipefail
-              NEW_IMAGE="${ECR_URI}:${IMAGE_TAG}"
-              cat taskdef.json | \
-                jq --arg NAME "${CONTAINER_NAME}" --arg IMG "$NEW_IMAGE" \
-                   '.containerDefinitions |= (map(if .name == $NAME then .image = $IMG else . end)) \
-                    | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
-                > taskdef-updated.json
+          // Update image in container definitions and register new revision
+          sh '''
+            set -euo pipefail
+            NEW_IMAGE="${ECR_URI}:${IMAGE_TAG}"
+            cat taskdef.json | \
+              jq --arg NAME "${CONTAINER_NAME}" --arg IMG "$NEW_IMAGE" \
+                 '.containerDefinitions |= (map(if .name == $NAME then .image = $IMG else . end)) \
+                  | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+              > taskdef-updated.json
 
-              aws ecs register-task-definition --region ${AWS_REGION} \
-                --cli-input-json file://taskdef-updated.json \
-                --query 'taskDefinition.taskDefinitionArn' --output text > newTaskDefArn.txt
-            '''
+            aws ecs register-task-definition --region ${AWS_REGION} \
+              --cli-input-json file://taskdef-updated.json \
+              --query 'taskDefinition.taskDefinitionArn' --output text > newTaskDefArn.txt
+          '''
 
-            // Update ECS service to use the new task definition
-            sh '''
-              set -euo pipefail
-              NEW_ARN=$(cat newTaskDefArn.txt)
-              aws ecs update-service --cluster ${ECS_CLUSTER} --service ${ECS_SERVICE} \
-                --task-definition "$NEW_ARN" --region ${AWS_REGION}
-            '''
-          }
+          // Update ECS service to use the new task definition
+          sh '''
+            set -euo pipefail
+            NEW_ARN=$(cat newTaskDefArn.txt)
+            aws ecs update-service --cluster ${ECS_CLUSTER} --service ${ECS_SERVICE} \
+              --task-definition "$NEW_ARN" --region ${AWS_REGION}
+          '''
         }
       }
     }
@@ -130,14 +130,12 @@ pipeline {
   post {
     always {
       echo 'Build finished. Gathering deployment status...'
-      withCredentials([aws(credentialsId: AWS_CREDS_ID, region: AWS_REGION)]) {
-        script {
-          sh '''
-            set -e
-            aws ecs describe-services --cluster ${ECS_CLUSTER} --services ${ECS_SERVICE} --region ${AWS_REGION} \
-              --query 'services[0].{Service:serviceName,Status:status,Running:runningCount,Desired:desiredCount,TaskDef:taskDefinition}'
-          '''
-        }
+      script {
+        sh '''
+          set -e
+          aws ecs describe-services --cluster ${ECS_CLUSTER} --services ${ECS_SERVICE} --region ${AWS_REGION} \
+            --query 'services[0].{Service:serviceName,Status:status,Running:runningCount,Desired:desiredCount,TaskDef:taskDefinition}'
+        '''
       }
     }
     success {
